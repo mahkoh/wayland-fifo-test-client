@@ -1,0 +1,11 @@
+[package]
+name = "wayland-fifo-test-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wayland-client = "0.31.2"
+wayland-protocols = { version = "0.31.2", features = ["client", "unstable", "staging"] }
+wayland-backend = { version = "0.3.3", features = ["client_system"]}
+wayland-scanner = "0.31.1"
+memfile = "0.3.2"
