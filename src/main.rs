@@ -99,7 +99,7 @@ struct State {
 
 struct Objects {
     start: Instant,
-    surface1: (WlSurface, WpViewport, WpFifoV1),
+    surface1: (WlSurface, WpViewport, Option<WpFifoV1>),
     surface2: (WlSurface, WpViewport, WlSubsurface),
     _xdg_surface: XdgSurface,
     _xdg_toplevel: XdgToplevel,
@@ -153,7 +153,9 @@ impl Objects {
         self.surface1.1.set_destination(self.width, self.height);
         self.surface1.0.attach(Some(&self.white[idx]), 0, 0);
         if self.fifo {
-            self.surface1.2.fifo();
+            if let Some(fifo) = &self.surface1.2 {
+                fifo.fifo();
+            }
         }
         self.surface1.0.commit();
 
@@ -226,10 +228,6 @@ impl Dispatch<WlCallback, InitialRoundtrip> for State {
         let shm = state.wl_shm.as_ref().expect("wl_shm");
         let sub = state.wl_subcompositor.as_ref().expect("wl_subcompositor");
         let viewporter = state.wp_viewporter.as_ref().expect("wp_viewporter");
-        let fifo = state
-            .wp_fifo_manager_v1
-            .as_ref()
-            .expect("wp_fifo_manager_v1");
         let buffer = |color: [u8; 4], id: Option<usize>| {
             let mut map = MemFile::create_default("color").unwrap();
             map.write_all(&color).unwrap();
@@ -239,7 +237,10 @@ impl Dispatch<WlCallback, InitialRoundtrip> for State {
         let create_surface = || {
             let surface = comp.create_surface(qhandle, ());
             let viewport = viewporter.get_viewport(&surface, qhandle, ());
-            let fifo = fifo.get_fifo(&surface, qhandle, ());
+            let fifo = state
+                .wp_fifo_manager_v1
+                .as_ref()
+                .map(|m| m.get_fifo(&surface, qhandle, ()));
             (surface, viewport, fifo)
         };
         let create_subsurface = |parent: &WlSurface| {
@@ -412,10 +413,13 @@ impl Dispatch<wl_keyboard::WlKeyboard, ()> for State {
                         println!();
                         obj.fifo = !obj.fifo;
                         let name = match obj.fifo {
-                            true => "fifo",
+                            true => match obj.surface1.2.is_some() {
+                                true => "fifo",
+                                _ => "fifo (unavailable)",
+                            },
                             false => "mailbox",
                         };
-                        println!("presenting with {}", name);
+                        println!("presenting with {name}");
                         println!();
                     }
                 }
