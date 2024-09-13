@@ -154,7 +154,8 @@ impl Objects {
         self.surface1.0.attach(Some(&self.white[idx]), 0, 0);
         if self.fifo {
             if let Some(fifo) = &self.surface1.2 {
-                fifo.fifo();
+                fifo.set_barrier();
+                fifo.wait_barrier();
             }
         }
         self.surface1.0.commit();

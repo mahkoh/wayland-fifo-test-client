@@ -86,25 +86,41 @@
              summary="the associated surface no longer exists"/>
     </enum>
 
-    <request name="fifo">
+    <request name="set_barrier">
+      <description summary="Sets the start point for a fifo constraint">
+        When the content update containing the "set_barrier" is applied,
+        it sets a "fifo_barrier" condition on the surface associated with
+        the fifo object. The condition is cleared immediately after the
+        following latching deadline for non-tearing presentation.
+
+        To wait for this condition to clear, use the "wait_barrier" request.
+
+        "set_barrier" is double-buffered state, see wl_surface.commit.
+
+        Requesting set_barrier after the fifo object's surface is
+        destroyed will generate a "surface_destroyed" error.
+      </description>
+    </request>
+
+    <request name="wait_barrier">
       <description summary="Adds a fifo constraint to a content update">
-        Indicate that this content update is not ready until the latching
-        deadline for the vertical sync following the vertical refresh
-        interval for which the previous buffer was latched.
+        Indicate that this content update is not ready while a
+        "fifo_barrier" condition is present on the surface.
 
-        This constraint is satisfied immediately if a surface is not being
-        updated by the compositor (off-screen, occluded, or a subsurface
-        in synchronized mode) or if no buffer was previously attached.
+        This means that when the content update containing "set_barrier"
+        was made active at a latching deadline, it will be active for
+        at least one refresh cycle. A content update which is allowed to
+        tear might become active after a latching deadline if no content
+        update became active at the deadline.
 
-        fifo is double buffered state, and will be applied at the
-        time wl_surface.commit of the corresponding wl_surface is called.
+        This constraint is ignored if the surface is not being updated by
+        the compositor (off-screen, occluded) or if the surface is a
+        subsurface in synchronized mode.
 
-        Since this object operates on a single specific surface, it makes
-        no sense to make requests on it after the associated surface
-        is destroyed.
+        "wait_barrier" is double-buffered state, see wl_surface.commit.
 
-        Attempting to do so will result in the generation of a
-        "surface_destroyed" error.
+        Requesting "wait_barrier" after the fifo object's surface is
+        destroyed will generate a "surface_destroyed" error.
       </description>
     </request>
 
